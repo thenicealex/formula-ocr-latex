@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LaTeX OCR</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <main>
+      <header><h1>LaTeX OCR</h1><p>上传或粘贴公式图片，转换为 LaTeX。</p></header>
+      <section class="credentials">
+        <div><label for="app-id">SimpleTex APP ID</label><input id="app-id" autocomplete="off" /></div>
+        <div><label for="app-secret">SimpleTex APP Secret</label><input id="app-secret" type="password" autocomplete="off" /></div>
+        <button id="clear-credentials" class="secondary" type="button">清除凭据</button>
+        <p>凭据只保存在此浏览器标签页中，并仅用于本次向 SimpleTex 发起的识别请求。</p>
+      </section>
+      <section class="workspace">
+        <div class="panel">
+          <label class="drop-zone" id="drop-zone" for="image-input"><input id="image-input" type="file" accept="image/png,image/jpeg,image/webp" /><strong>上传、拖拽或粘贴图片</strong><span>支持 PNG、JPG、WEBP，最大 3 MB</span></label>
+          <img id="preview" hidden alt="待识别公式" />
+          <div class="controls"><select id="model"><option value="standard">标准模型</option><option value="turbo">轻量模型</option></select><button id="recognize" type="button" disabled>开始识别</button></div>
+        </div>
+        <div class="panel result"><p id="status">请选择或粘贴一张公式图片。</p><div id="result" hidden><div id="formula"></div><label for="latex">LaTeX 代码</label><textarea id="latex" readonly></textarea><button id="copy" class="secondary" type="button">复制 LaTeX</button></div></div>
+      </section>
+    </main>
+  </body>
+</html>

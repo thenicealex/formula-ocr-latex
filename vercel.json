@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/recognize.py": {
+      "maxDuration": 30
+    }
+  }
+}
