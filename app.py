@@ -8,8 +8,10 @@ import json
 
 from backend import (
     base64_to_image,
+    image_bytes_to_image,
     run_simpletex,
     increment_usage,
+    get_model_usage,
     get_usage,
 )
 
@@ -38,9 +40,9 @@ st.markdown(
     .app-header { text-align: center; margin-bottom: 1.4rem; }
     .app-header h1 {
         font-size: 1.8rem; font-weight: 700;
-        color: #1e293b; margin-bottom: 0.2rem;
+        color: inherit; margin-bottom: 0.2rem;
     }
-    .app-header p { font-size: 0.9rem; color: #64748b; margin: 0; }
+    .app-header p { font-size: 0.9rem; color: inherit; opacity: 0.7; margin: 0; }
     .badge {
         display: inline-block;
         background: #dcfce7; color: #15803d;
@@ -69,9 +71,69 @@ st.markdown(
     /* LaTeX 复制按钮常驻显示（默认 hover 才显示） */
     [data-testid="stCode"] button {
         opacity: 1 !important;
-        background: #f1f5f9 !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 6px !important;
+    }
+    /* 上传区与粘贴区使用同一套蓝色主题 */
+    [data-testid="stFileUploader"] > label {
+        color: #bfdbfe !important;
+    }
+    [data-testid="stFileUploaderDropzone"] {
+        min-height: 130px;
+        background: #f8faff !important;
+        border: 2px dashed #93c5fd !important;
+        border-radius: 12px !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        text-align: center;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    [data-testid="stFileUploaderDropzone"]:hover {
+        background: #eff6ff !important;
+        border-color: #3b82f6 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] > span {
+        order: 1;
+    }
+    [data-testid="stFileUploaderDropzone"]::after {
+        content: "拖拽图片到此处，或点击浏览";
+        order: 2;
+        color: #64748b;
+        font-size: 0.82rem;
+    }
+    [data-testid="stFileUploaderDropzone"] [data-testid="stFileUploaderDropzoneInstructions"] {
+        order: 3;
+    }
+    [data-testid="stFileUploaderDropzone"] [data-testid="stFileUploaderDropzoneInstructions"] * {
+        color: #64748b !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button {
+        background: transparent !important;
+        border: none !important;
+        color: #2563eb !important;
+        padding: 0 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button:hover {
+        background: transparent !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button [data-has-shortcut="false"] {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+    }
+    [data-testid="stFileUploaderDropzone"] button [data-testid="stIconMaterial"] {
+        font-size: 1.6rem;
+    }
+    [data-testid="stFileUploaderDropzone"] button p {
+        margin: 0 !important;
+        font-size: 0;
+    }
+    [data-testid="stFileUploaderDropzone"] button p::after {
+        content: "上传图片";
+        font-size: 1rem;
+        font-weight: 600;
     }
     </style>
     """,
@@ -88,6 +150,7 @@ for _key, _default in [
     ("elapsed", 0.0),
     ("recognize_error", None),
     ("active_model", None),
+    ("recognition_metadata", {}),
 ]:
     if _key not in st.session_state:
         st.session_state[_key] = _default
@@ -98,8 +161,7 @@ for _key, _default in [
 st.markdown(
     """
     <div class="app-header">
-        <h1>图片转公式</h1>
-        <p>截图后直接按 Ctrl+V，自动识别为 LaTeX / PNG 可用格式</p>
+        <h1>Latex OCR</h1>
     </div>
     """,
     unsafe_allow_html=True,
@@ -146,6 +208,7 @@ if st.session_state.active_model != model_name:
     if st.session_state.current_image is not None:
         st.session_state.latex_result = None
         st.session_state.recognize_error = None
+        st.session_state.recognition_metadata = {}
         st.rerun()
 
 col_left, col_right = st.columns([1, 1], gap="large")
@@ -156,6 +219,10 @@ col_left, col_right = st.columns([1, 1], gap="large")
 with col_left:
     # 自定义粘贴组件（返回 base64 data URL 或 None）
     raw_paste = paste_component(key="paste_zone", default=None)
+    uploaded_file = st.file_uploader(
+        "上传或拖拽公式图片",
+        type=["png", "jpg", "jpeg", "webp"],
+    )
 
     # 检测是否粘贴了新图片
     if raw_paste is not None:
@@ -165,7 +232,23 @@ with col_left:
             st.session_state.current_image   = base64_to_image(raw_paste)
             st.session_state.latex_result    = None
             st.session_state.recognize_error = None
+            st.session_state.recognition_metadata = {}
             st.rerun()
+
+    if uploaded_file is not None:
+        image_bytes = uploaded_file.getvalue()
+        image_hash = hash(image_bytes)
+        if image_hash != st.session_state.last_paste_hash:
+            st.session_state.last_paste_hash = image_hash
+            try:
+                st.session_state.current_image = image_bytes_to_image(image_bytes)
+            except Exception:
+                st.error("无法读取该图片，请上传 PNG、JPG 或 WEBP 格式的文件。")
+            else:
+                st.session_state.latex_result = None
+                st.session_state.recognize_error = None
+                st.session_state.recognition_metadata = {}
+                st.rerun()
 
     if st.session_state.current_image is not None:
         img = st.session_state.current_image
@@ -200,10 +283,16 @@ if (
     )
     t0 = time.time()
     try:
-        st.session_state.latex_result = run_simpletex(
+        result = run_simpletex(
             st.session_state.current_image, st.session_state.active_model
         )
-        increment_usage()
+        st.session_state.latex_result = result.latex
+        st.session_state.recognition_metadata = {
+            "confidence": result.confidence,
+            "request_id": result.request_id,
+        }
+        elapsed = time.time() - t0
+        increment_usage(st.session_state.active_model, elapsed)
     except Exception as exc:
         st.session_state.recognize_error = str(exc)
 
@@ -219,13 +308,30 @@ with col_right:
         st.error(f"识别失败：{st.session_state.recognize_error}")
 
     elif st.session_state.latex_result:
-        latex   = st.session_state.latex_result
+        latex = st.session_state.latex_result
         elapsed = st.session_state.elapsed
+        metadata = st.session_state.recognition_metadata
 
-        st.markdown(
-            f'<span class="badge">✓ 识别完成 · {elapsed:.2f} s</span>',
-            unsafe_allow_html=True,
-        )
+        status_col, retry_col = st.columns([3, 1])
+        with status_col:
+            st.markdown(
+                f'<span class="badge">✓ {model_label} · {elapsed:.2f} s</span>',
+                unsafe_allow_html=True,
+            )
+        with retry_col:
+            if st.button("重新识别", key="retry_recognition"):
+                st.session_state.latex_result = None
+                st.session_state.recognize_error = None
+                st.session_state.recognition_metadata = {}
+                st.rerun()
+
+        details = []
+        if metadata.get("confidence") is not None:
+            details.append(f"置信度：{metadata['confidence']:.1%}")
+        if metadata.get("request_id"):
+            details.append(f"请求 ID：{metadata['request_id']}")
+        if details:
+            st.caption(" · ".join(details))
 
         # ── 1. 公式预览 ──────────────────────────────
         st.markdown('<div class="section-label">公式预览</div>', unsafe_allow_html=True)
@@ -389,10 +495,23 @@ with col_right:
 # 底部信息栏
 # ──────────────────────────────────────────────────────────────
 st.markdown("---")
+model_usage = get_model_usage()
+standard_usage = model_usage.get("standard", {})
+turbo_usage = model_usage.get("turbo", {})
+
+
+def _usage_summary(name: str, stats: dict) -> str:
+    count = stats.get("count", 0)
+    average = stats.get("elapsed", 0) / count if count else 0
+    return f"{name}：{count} 次 · 平均 {average:.2f} s"
+
+
 st.markdown(
     f'<div style="text-align:center; font-size:0.82rem; color:#94a3b8;">'
     f'公式识别服务：<a href="https://simpletex.cn" style="color:#94a3b8;">SimpleTex</a>'
     f' &nbsp;·&nbsp; 累计识别次数：{get_usage()} 次'
+    f' &nbsp;·&nbsp; {_usage_summary("标准", standard_usage)}'
+    f' &nbsp;·&nbsp; {_usage_summary("轻量", turbo_usage)}'
     f'</div>',
     unsafe_allow_html=True,
 )
