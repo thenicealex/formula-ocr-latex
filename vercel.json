@@ -1,5 +1,16 @@
 {
   "framework": null,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; img-src 'self' data: blob:; object-src 'none'; script-src 'self'; style-src 'self'"
+        }
+      ]
+    }
+  ],
   "functions": {
     "api/recognize.js": {
       "maxDuration": 30

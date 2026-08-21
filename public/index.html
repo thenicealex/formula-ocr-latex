@@ -1,14 +1,72 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Latex OCR</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" /><link rel="stylesheet" href="/styles.css" /><link rel="stylesheet" href="/fixes.css" /><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script><script defer src="/app.js"></script></head>
-<body><main class="block-container">
-  <header class="app-header"><h1>Latex OCR</h1></header><p class="daily-quote" id="daily-quote"></p>
-  <details class="credentials"><summary>SimpleTex 凭据</summary><div class="credential-fields"><label>APP ID<input id="app-id" autocomplete="off" /></label><label>APP Secret<input id="app-secret" type="password" autocomplete="off" /></label><button id="clear-credentials" class="subtle-button" type="button">清除凭据</button></div><p>仅保存在当前标签页，并只在识别请求中使用。</p></details>
-  <section class="model-picker" aria-label="识别模型"><span>识别模型</span><div class="segmented-control" role="group"><button class="selected" data-model="standard" type="button">标准模型</button><button data-model="turbo" type="button">轻量模型</button></div><span class="model-help" title="标准模型效果更好；轻量模型速度更快。">?</span></section>
-  <section class="workspace"><div class="left-column">
-    <div class="paste-zone" id="paste-zone" tabindex="0"><span class="decor top-left">∫</span><span class="decor top-right">π</span><span class="decor bottom-left">√</span><span class="decor bottom-right">∞</span><div class="paste-icon">⌨️</div><strong>Ctrl + V 粘贴截图</strong><span class="paste-tip" id="paste-tip">点击此区域可锁定焦点，全局粘贴无需点击</span></div>
-    <label class="upload-zone" id="upload-zone" for="image-input"><input id="image-input" type="file" accept="image/png,image/jpeg,image/webp" /><span class="upload-icon">⇧</span><strong>上传图片</strong><span>拖拽图片到此处，或点击浏览</span></label><img id="preview" hidden alt="待识别公式" />
-  </div><div class="right-column">
-    <div class="empty-state" id="empty-state"><div>∑</div><p>在左侧按 <strong>Ctrl+V</strong> 粘贴截图后，结果将显示在此处</p></div><p class="error-message" id="error-message" hidden></p>
-    <section id="result" hidden><div class="result-head"><span class="badge" id="result-badge"></span><button id="retry" class="retry-button" type="button">重新识别</button></div><p class="result-details" id="result-details"></p><div class="section-label">公式预览</div><div class="formula-card" id="formula"></div><p class="preview-hint">预览仅供参考，渲染失败不影响 LaTeX 代码和 PNG 格式的正常使用。</p><div class="section-label">LaTeX 代码</div><p class="code-hint">点击右上角复制按钮一键复制</p><div class="code-block"><button id="copy-latex" type="button" title="复制 LaTeX">⧉</button><pre><code id="latex"></code></pre></div><div class="section-label">PNG 格式</div><div class="png-card"><div id="png-render"></div><div class="png-controls"><button id="copy-png" type="button">复制为 PNG</button><a id="download-png" download="formula.png">下载 PNG</a></div></div></section>
-  </div></section><footer>公式识别服务：<a href="https://simpletex.cn" target="_blank" rel="noreferrer">SimpleTex</a><span>·</span>累计识别次数：<span id="usage-total">0</span> 次<span>·</span><span id="usage-standard">标准：0 次 · 平均 0.00 s</span><span>·</span><span id="usage-turbo">轻量：0 次 · 平均 0.00 s</span></footer>
-</main></body></html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Latex OCR</title>
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="/vendor/katex/katex.min.js"></script>
+    <script defer src="/vendor/html2canvas/html2canvas.min.js"></script>
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <main class="block-container">
+      <header class="app-header"><h1>Latex OCR</h1></header>
+      <p id="daily-quote" class="daily-quote"></p>
+
+      <details class="credentials" id="credentials">
+        <summary>SimpleTex 凭据</summary>
+        <div class="credential-fields">
+          <label>APP ID<input id="app-id" autocomplete="off" /></label>
+          <label>APP Secret<input id="app-secret" type="password" autocomplete="off" /></label>
+          <button id="clear-credentials" class="subtle-button" type="button">清除凭据</button>
+        </div>
+        <p>仅保存在当前标签页，并只在识别请求中使用。</p>
+      </details>
+
+      <section class="model-picker" aria-label="识别模型">
+        <span>识别模型</span>
+        <div class="segmented-control" role="group">
+          <button class="selected" data-model="standard" type="button" aria-pressed="true">标准模型</button>
+          <button data-model="turbo" type="button" aria-pressed="false">轻量模型</button>
+        </div>
+        <span class="model-help" title="标准模型效果更好；轻量模型速度更快。">?</span>
+      </section>
+
+      <section class="workspace">
+        <div class="left-column">
+          <div class="paste-zone" id="paste-zone" tabindex="0" role="button" aria-label="粘贴公式截图">
+            <span class="decor top-left">∫</span><span class="decor top-right">π</span>
+            <span class="decor bottom-left">√</span><span class="decor bottom-right">∞</span>
+            <div class="paste-icon">⌨️</div><strong>Ctrl + V 粘贴截图</strong>
+            <span class="paste-tip" id="paste-tip">点击此区域可锁定焦点，全局粘贴无需点击</span>
+          </div>
+          <label class="upload-zone" id="upload-zone" for="image-input">
+            <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp" />
+            <span class="upload-icon">⇧</span><strong>上传图片</strong><span>拖拽图片到此处，或点击浏览</span>
+          </label>
+          <img id="preview" hidden alt="待识别公式" />
+        </div>
+
+        <div class="right-column">
+          <div class="empty-state" id="empty-state"><div>∑</div><p>在左侧按 <strong>Ctrl+V</strong> 粘贴截图后，结果将显示在此处</p></div>
+          <p class="loading-message" id="loading-message" hidden aria-live="polite">识别中…</p>
+          <p class="error-message" id="error-message" hidden role="alert"></p>
+          <section id="result" hidden>
+            <div class="result-head"><span class="badge" id="result-badge"></span><button id="retry" class="retry-button" type="button">重新识别</button></div>
+            <p class="result-details" id="result-details"></p>
+            <div class="section-label">公式预览</div><div class="formula-card" id="formula"></div>
+            <p class="preview-hint">预览仅供参考，渲染失败不影响 LaTeX 代码和 PNG 格式的正常使用。</p>
+            <div class="section-label">LaTeX 代码</div><p class="code-hint">点击右上角复制按钮一键复制</p>
+            <div class="code-block"><button id="copy-latex" type="button" aria-label="复制 LaTeX">⧉</button><pre><code id="latex"></code></pre></div>
+            <div class="section-label">PNG 格式</div>
+            <div class="png-card"><div id="png-render"></div><div class="png-controls"><button id="copy-png" type="button">复制为 PNG</button><a id="download-png" download="formula.png">下载 PNG</a></div></div>
+          </section>
+        </div>
+      </section>
+
+      <footer>公式识别服务：<a href="https://simpletex.cn" target="_blank" rel="noreferrer">SimpleTex</a><span>·</span>累计识别次数：<span id="usage-total">0</span> 次<span>·</span><span id="usage-standard">标准：0 次 · 平均 0.00 s</span><span>·</span><span id="usage-turbo">轻量：0 次 · 平均 0.00 s</span></footer>
+    </main>
+  </body>
+</html>
