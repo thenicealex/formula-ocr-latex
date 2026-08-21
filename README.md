@@ -1,6 +1,14 @@
 # 图片转公式
 
+## 界面预览
+
+### 深色主题
+
 ![应用预览](assets/app-preview.png)
+
+### 浅色主题
+
+![浅色主题应用预览](assets/app-preview-light.png)
 
 ## 配置 SimpleTex
 
