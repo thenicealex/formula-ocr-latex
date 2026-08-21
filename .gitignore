@@ -21,3 +21,4 @@ build/
 .venv/ms_deploy.json
 .vercel
 node_modules/
+.venv/
