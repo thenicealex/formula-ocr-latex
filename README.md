@@ -1,5 +1,7 @@
 # 图片转公式
 
+![应用预览](assets/app-preview.png)
+
 ## 配置 SimpleTex
 
 应用启动前，需在 [SimpleTex 开放平台](https://simpletex.cn/user/center) 创建应用，并配置其 APP ID 与 APP Secret：
